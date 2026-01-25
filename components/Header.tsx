@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { User, Notification } from '../types.ts';
+import { User, Notification, UserRole } from '../types.ts';
 import { Bell, LogOut, Menu, X, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
 import { AppLogo } from '../constants.tsx';
 
@@ -22,6 +22,15 @@ const Header: React.FC<HeaderProps> = ({ user, notifications, onLogout, onMenuCl
       return false;
     });
   }, [notifications, user]);
+
+  const roleLabel = useMemo(() => {
+    switch(user.role?.toUpperCase()) {
+      case UserRole.ADMIN: return '管理员';
+      case UserRole.PRESIDENT: return '行长级';
+      case UserRole.VP: return '副行长级';
+      default: return '普通行员';
+    }
+  }, [user.role]);
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-40 shadow-sm">
@@ -83,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ user, notifications, onLogout, onMenuCl
         <div className="flex items-center gap-2.5 ml-1">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-black text-slate-900 leading-none mb-1">{user.realName}</p>
-            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{user.points} P · {user.line}</p>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{roleLabel} · {user.line}</p>
           </div>
           <img
             src={user.avatar}

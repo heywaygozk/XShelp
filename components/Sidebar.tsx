@@ -12,7 +12,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user, users, onNavClick, className }) => {
-  const filteredItems = NAVIGATION_ITEMS.filter(item => item.roles.includes(user.role));
+  // 优化：确保角色匹配时不受大小写影响
+  const filteredItems = NAVIGATION_ITEMS.filter(item => 
+    item.roles.some(role => role.toUpperCase() === user.role?.toUpperCase())
+  );
 
   const displayPoints = useMemo(() => {
     if (user.role === UserRole.ADMIN) {

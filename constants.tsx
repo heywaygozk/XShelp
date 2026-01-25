@@ -11,12 +11,12 @@ import {
 import { User, UserRole } from './types';
 
 export const NAVIGATION_ITEMS = [
-  { name: '工作看板', path: '/', icon: <LayoutDashboard size={20} />, roles: ['ADMIN', 'PRESIDENT', 'VP', 'EMPLOYEE'] },
-  { name: '资源中心', path: '/resources', icon: <Library size={20} />, roles: ['ADMIN', 'PRESIDENT', 'VP', 'EMPLOYEE'] },
-  { name: '需求广场', path: '/demands', icon: <MessageSquare size={20} />, roles: ['ADMIN', 'PRESIDENT', 'VP', 'EMPLOYEE'] },
-  { name: '积分变动', path: '/points', icon: <Coins size={20} />, roles: ['ADMIN', 'PRESIDENT', 'VP', 'EMPLOYEE'] },
-  { name: '管理后台', path: '/admin', icon: <ShieldCheck size={20} />, roles: ['ADMIN'] },
-  { name: '数据分析', path: '/analytics', icon: <BarChart3 size={20} />, roles: ['ADMIN', 'PRESIDENT', 'VP'] },
+  { name: '工作看板', path: '/', icon: <LayoutDashboard size={20} />, roles: [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP, UserRole.EMPLOYEE] },
+  { name: '资源中心', path: '/resources', icon: <Library size={20} />, roles: [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP, UserRole.EMPLOYEE] },
+  { name: '需求广场', path: '/demands', icon: <MessageSquare size={20} />, roles: [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP, UserRole.EMPLOYEE] },
+  { name: '积分变动', path: '/points', icon: <Coins size={20} />, roles: [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP, UserRole.EMPLOYEE] },
+  { name: '管理后台', path: '/admin', icon: <ShieldCheck size={20} />, roles: [UserRole.ADMIN] },
+  { name: '数据分析', path: '/analytics', icon: <BarChart3 size={20} />, roles: [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP] },
 ];
 
 export const MOCK_USERS: User[] = [
