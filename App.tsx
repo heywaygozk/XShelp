@@ -1,21 +1,21 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import DashboardView from './views/DashboardView';
-import ResourceView from './views/ResourceView';
-import ResourceUploadView from './views/ResourceUploadView';
-import ResourceDetailView from './views/ResourceDetailView';
-import DemandView from './views/DemandView';
-import DemandUploadView from './views/DemandUploadView';
-import DemandDetailView from './views/DemandDetailView';
-import PointsView from './views/PointsView';
-import AdminView from './views/AdminView';
-import AnalyticsView from './views/AnalyticsView';
-import LoginView from './views/LoginView';
-import { User, UserRole, Resource, Demand, DemandUrgency, DemandStatus, Comment, Notification } from './types';
-import { MOCK_USERS } from './constants';
+import Sidebar from './components/Sidebar.tsx';
+import Header from './components/Header.tsx';
+import DashboardView from './views/DashboardView.tsx';
+import ResourceView from './views/ResourceView.tsx';
+import ResourceUploadView from './views/ResourceUploadView.tsx';
+import ResourceDetailView from './views/ResourceDetailView.tsx';
+import DemandView from './views/DemandView.tsx';
+import DemandUploadView from './views/DemandUploadView.tsx';
+import DemandDetailView from './views/DemandDetailView.tsx';
+import PointsView from './views/PointsView.tsx';
+import AdminView from './views/AdminView.tsx';
+import AnalyticsView from './views/AnalyticsView.tsx';
+import LoginView from './views/LoginView.tsx';
+import { User, UserRole, Resource, Demand, DemandUrgency, DemandStatus, Comment, Notification } from './types.ts';
+import { MOCK_USERS } from './constants.tsx';
 import { X } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -92,7 +92,6 @@ const App: React.FC = () => {
       type: 'SUCCESS',
       targetUid: activeUser?.uid 
     });
-    // Notify relevant roles or everyone
     addNotification({
       title: '新需求广播',
       content: `${activeUser?.realName} 发布了新需求：${dem.title}`,
@@ -160,7 +159,6 @@ const App: React.FC = () => {
   const addResourceComment = (rid: string, comment: Comment) => {
     setResources(prev => prev.map(r => r.rid === rid ? { ...r, comments: [...r.comments, comment] } : r));
     const target = resources.find(r => r.rid === rid);
-    // Find owner user ID from resources mock logic (assuming owner name is unique for simple demo)
     const owner = users.find(u => u.realName === target?.owner);
     if (owner && owner.uid !== activeUser?.uid) {
       addNotification({ 

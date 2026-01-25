@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
-import { User, Demand, Resource, DemandStatus } from '../types';
-import { TAG_COLORS } from '../constants';
+import { User, Demand, Resource, DemandStatus } from '../types.ts';
+import { TAG_COLORS } from '../constants.tsx';
 import { 
   HelpingHand,
   TrendingUp,
@@ -29,7 +29,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, demands, resources 
   const stats = useMemo(() => {
     const completedHelps = demands.filter(d => d.helperId === user.uid && d.status === DemandStatus.COMPLETED);
     const cumulativeHelp = completedHelps.length;
-    
     const pointsRevenue = completedHelps
       .filter(d => d.rewardType === 'POINTS')
       .reduce((acc, d) => acc + d.rewardValue, 0);

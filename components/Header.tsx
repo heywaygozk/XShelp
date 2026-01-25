@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import { User, Notification } from '../types';
+import { User, Notification } from '../types.ts';
 import { Bell, LogOut, Menu, X, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
-import { AppLogo } from '../constants';
+import { AppLogo } from '../constants.tsx';
 
 interface HeaderProps {
   user: User;
@@ -38,7 +38,6 @@ const Header: React.FC<HeaderProps> = ({ user, notifications, onLogout, onMenuCl
         </div>
       </div>
 
-      {/* Global search removed as per requirement */}
       <div className="hidden md:block"></div>
 
       <div className="flex items-center gap-1 md:gap-4">

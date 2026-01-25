@@ -1,8 +1,8 @@
 
 import React, { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { User, UserRole } from '../types';
-import { NAVIGATION_ITEMS, AppLogo } from '../constants';
+import { User, UserRole } from '../types.ts';
+import { NAVIGATION_ITEMS, AppLogo } from '../constants.tsx';
 
 interface SidebarProps {
   user: User;
@@ -16,7 +16,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, users, onNavClick, className })
 
   const displayPoints = useMemo(() => {
     if (user.role === UserRole.ADMIN) {
-      // Calculate total points of ALL users EXCEPT admins
       return users.filter(u => u.role !== UserRole.ADMIN).reduce((sum, u) => sum + u.points, 0);
     }
     return user.points;

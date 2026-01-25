@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, Resource } from '../types';
+import { User, Resource } from '../types.ts';
 import { Search, Plus, FileText, ChevronRight, Share2, Filter, LayoutGrid, Star } from 'lucide-react';
-import { TAG_COLORS, RESOURCE_TAGS } from '../constants';
+import { TAG_COLORS, RESOURCE_TAGS } from '../constants.tsx';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface ResourceViewProps {

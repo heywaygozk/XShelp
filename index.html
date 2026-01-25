@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <!-- 必须是 head 的第一个脚本，防止时序错误 -->
     <script type="importmap">
     {
       "imports": {
@@ -16,7 +17,7 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>象山帮帮 - 宁波银行象山支行</title>
+    <title>象山帮帮 - 宁波银行象山支行协作平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -35,5 +36,7 @@
 </head>
 <body>
     <div id="root"></div>
+    <!-- 显式引入入口模块，并带上后缀 -->
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

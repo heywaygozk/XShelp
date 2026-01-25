@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Download, Upload, Edit3, X, UserPlus, Search, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { User, UserRole } from '../types';
+import { Search, UserPlus, Edit3 } from 'lucide-react';
+import { User, UserRole } from '../types.ts';
 
 interface AdminViewProps {
   users: User[];
@@ -55,20 +55,6 @@ const AdminView: React.FC<AdminViewProps> = ({ users, onUpdateUsers }) => {
     }
     setIsModalOpen(false);
     setEditingUser(null);
-  };
-
-  const handleDownloadTemplate = (type: string) => {
-    let content = "";
-    if (type === 'USERS') {
-      content = "工号,姓名,部门,条线(公司/零售/个人/运营/中后台),角色(ADMIN/PRESIDENT/VP/EMPLOYEE),初始积分\nNB100,测试员,测试部,公司,EMPLOYEE,10000";
-    } else {
-      content = "标题,内容,条线,奖励,描述\n测试标题,详情,公司,800,描述文字";
-    }
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `nb_template_${type.toLowerCase()}.csv`;
-    link.click();
   };
 
   return (
@@ -143,27 +129,9 @@ const AdminView: React.FC<AdminViewProps> = ({ users, onUpdateUsers }) => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { title: '成员名单导入', type: 'USERS', desc: '批量入职新员工并分配初始积分，需包含工号、姓名、条线等。' },
-            { title: '资源库同步', type: 'RESOURCES', desc: '批量导入各条线标准化文档及工具。' },
-            { title: '协作历史导入', type: 'DEMANDS', desc: '迁移支行历史协作数据及积分记录。' }
-          ].map((item, i) => (
-            <div key={i} className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl flex flex-col justify-between">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">{item.title}</h3>
-                <p className="text-xs text-slate-400 mt-3 font-bold leading-relaxed">{item.desc}</p>
-              </div>
-              <div className="flex gap-3 pt-8 mt-8 border-t border-slate-50">
-                <button onClick={() => handleDownloadTemplate(item.type)} className="flex-1 py-4 bg-slate-50 text-slate-700 rounded-2xl text-[10px] font-black">下载模板</button>
-                <button className="flex-1 py-4 bg-nb-red text-white rounded-2xl text-[10px] font-black shadow-lg shadow-red-200">开始上传</button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <div className="p-10 text-center text-slate-400 font-black">批量操作模块开发中...</div>
       )}
 
-      {/* Edit/Add Modal */}
       {isModalOpen && editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
