@@ -47,7 +47,8 @@ const mapDemand = (d: any): Demand => ({
   rewardType: d.reward_type,
   rewardValue: d.reward_value,
   urgency: d.urgency,
-  isRecommended: !!d.is_recommended,
+  // 核心：强制布尔转换
+  isRecommended: d.is_recommended === true, 
   tags: d.tags || [],
   status: d.status,
   creatorId: d.creator_id,
@@ -124,7 +125,6 @@ const App: React.FC = () => {
     return users.find(u => u.uid === currentUser.uid) || currentUser;
   }, [currentUser, users]);
 
-  // --- 通知分发器 ---
   const addNotification = (notif: Partial<Notification>) => {
     const newNotif: Notification = {
       id: `n${Date.now()}`,
@@ -148,7 +148,6 @@ const App: React.FC = () => {
     localStorage.removeItem('nb_user');
   };
 
-  // --- 资源管理 ---
   const addResource = async (res: Resource) => {
     if (supabase) {
       await supabase.from('resources').insert([{
@@ -181,7 +180,6 @@ const App: React.FC = () => {
     setResources(prev => prev.filter(r => r.rid !== rid));
   };
 
-  // --- 需求管理 ---
   const addDemand = async (dem: Demand) => {
     if (supabase) {
       await supabase.from('demands').insert([{
@@ -217,47 +215,50 @@ const App: React.FC = () => {
     if (!currentDemand) return;
 
     if (supabase) {
-      const dbUpdates: any = { ...updates };
-      // 核心修复：这里不再 delete updates 中的原始属性，确保 local state 刷新
+      // 核心：构建数据库专用更新对象
+      const dbUpdates: any = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.customerInfo !== undefined) dbUpdates.customer_info = updates.customerInfo;
       if (updates.rewardType !== undefined) dbUpdates.reward_type = updates.rewardType;
       if (updates.rewardValue !== undefined) dbUpdates.reward_value = updates.rewardValue;
+      if (updates.urgency !== undefined) dbUpdates.urgency = updates.urgency;
       if (updates.isRecommended !== undefined) dbUpdates.is_recommended = updates.isRecommended;
-      if (updates.creatorId !== undefined) dbUpdates.creator_id = updates.creatorId;
-      if (updates.creatorName !== undefined) dbUpdates.creator_name = updates.creatorName;
-      if (updates.creatorAvatar !== undefined) dbUpdates.creator_avatar = updates.creatorAvatar;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.helperId !== undefined) dbUpdates.helper_id = updates.helperId;
       if (updates.helperName !== undefined) dbUpdates.helper_name = updates.helperName;
-      
-      await supabase.from('demands').update(dbUpdates).eq('did', did);
 
-      // 通知逻辑：需求被接单
+      const { error } = await supabase.from('demands').update(dbUpdates).eq('did', did);
+      if (error) {
+        console.error('Supabase Update Error:', error);
+        alert('同步至云端失败，请检查数据库字段。');
+        return;
+      }
+
+      // 通知逻辑：接单
       if (updates.status === DemandStatus.ACCEPTED && currentDemand.status === DemandStatus.PUBLISHED) {
         addNotification({
           title: '需求已被承接',
-          content: `${updates.helperName || '同事'} 已经接单了：${currentDemand.title}，请关注对接进度。`,
+          content: `${updates.helperName || '同事'} 已经接单了：${currentDemand.title}`,
           type: 'SUCCESS',
           targetUid: currentDemand.creatorId
         });
       }
 
-      // 通知逻辑：确认完成（结算）
+      // 通知逻辑：完成
       if (updates.status === DemandStatus.COMPLETED && currentDemand.status !== DemandStatus.COMPLETED) {
         const hId = updates.helperId || currentDemand.helperId;
-        const rVal = updates.rewardValue || currentDemand.rewardValue;
-        const rType = updates.rewardType || currentDemand.rewardType;
-
         if (hId) {
           addNotification({
             title: '需求确认完成',
-            content: `【${currentDemand.title}】协作圆满结束，奖励已发放到您的账户。`,
+            content: `【${currentDemand.title}】协作圆满结束，奖励已发放。`,
             type: 'SUCCESS',
             targetUid: hId
           });
-
-          if (rType === 'POINTS') {
+          if ((updates.rewardType || currentDemand.rewardType) === 'POINTS') {
             const helper = users.find(u => u.uid === hId);
             if (helper) {
+              const rVal = updates.rewardValue || currentDemand.rewardValue;
               const newPoints = (helper.points || 0) + rVal;
               await supabase.from('users').update({ points: newPoints }).eq('uid', hId);
               setUsers(prev => prev.map(u => u.uid === hId ? { ...u, points: newPoints } : u));
@@ -266,6 +267,7 @@ const App: React.FC = () => {
         }
       }
     }
+    // 即使没联网，也先更新本地 UI
     setDemands(prev => prev.map(d => d.did === did ? { ...d, ...updates } : d));
   };
 
@@ -274,7 +276,6 @@ const App: React.FC = () => {
     setDemands(prev => prev.filter(d => d.did !== did));
   };
 
-  // --- 评论管理 ---
   const addComment = async (type: 'DEMAND' | 'RESOURCE', id: string, comment: Comment) => {
     const table = type === 'DEMAND' ? 'demands' : 'resources';
     const idKey = type === 'DEMAND' ? 'did' : 'rid';
@@ -284,12 +285,10 @@ const App: React.FC = () => {
     const newComments = [...currentItem.comments, comment];
     if (supabase) await supabase.from(table).update({ comments: newComments }).eq(idKey, id);
     
-    // 通知逻辑：被评论提醒
     let targetUid = '';
     if (type === 'DEMAND') {
       targetUid = (currentItem as Demand).creatorId;
     } else {
-      // 资源通过 owner 姓名反查 uid
       const ownerUser = users.find(u => u.realName === (currentItem as Resource).owner);
       if (ownerUser) targetUid = ownerUser.uid;
     }
@@ -297,7 +296,7 @@ const App: React.FC = () => {
     if (targetUid && targetUid !== activeUser?.uid) {
       addNotification({
         title: type === 'DEMAND' ? '需求有了新动态' : '资源有了新评价',
-        content: `${comment.userName} 给您留言了：${comment.content.substring(0, 15)}...`,
+        content: `${comment.userName} 给您留言了。`,
         type: 'INFO',
         targetUid: targetUid
       });
@@ -307,7 +306,6 @@ const App: React.FC = () => {
     else setResources(prev => prev.map(r => r.rid === id ? { ...r, comments: newComments } : r));
   };
 
-  // --- 成员管理 ---
   const handleUpsertUser = async (u: User) => {
     if (supabase) {
       await supabase.from('users').upsert({
@@ -392,12 +390,12 @@ const App: React.FC = () => {
     if (supabase) {
       const { error } = await supabase.from('users').update({ password: newPass }).eq('uid', uid);
       if (error) {
-        alert('密码修改失败: ' + error.message);
+        alert('密码修改失败');
         return;
       }
     }
     setUsers(prev => prev.map(u => u.uid === uid ? { ...u, password: newPass } : u));
-    alert('密码修改成功，下次请使用新密码登录');
+    alert('密码修改成功');
   };
 
   if (loading) return (
