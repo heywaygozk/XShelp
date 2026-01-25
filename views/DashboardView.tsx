@@ -31,7 +31,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, demands, resources 
     const cumulativeHelp = completedHelps.length;
     const pointsRevenue = completedHelps
       .filter(d => d.rewardType === 'POINTS')
-      .reduce((acc, d) => acc + d.rewardValue, 0);
+      .reduce((acc, d) => acc + (Number(d.rewardValue) || 0), 0);
 
     const pendingTasks = demands.filter(d => 
       (d.creatorId === user.uid && d.status === DemandStatus.ACCEPTED) || 
@@ -40,9 +40,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, demands, resources 
 
     return [
       { label: '累计帮助', value: cumulativeHelp.toString(), icon: <HelpingHand size={20} />, textColor: 'text-blue-600', bgColor: 'bg-blue-50' },
-      { label: '积分收益', value: `+${pointsRevenue.toLocaleString()}`, icon: <Trophy size={20} />, textColor: 'text-green-600', bgColor: 'bg-green-50' },
+      { label: '积分收益', value: `+${(pointsRevenue || 0).toLocaleString()}`, icon: <Trophy size={20} />, textColor: 'text-green-600', bgColor: 'bg-green-50' },
       { label: '正在对接', value: pendingTasks.toString(), icon: <Target size={20} />, textColor: 'text-orange-600', bgColor: 'bg-orange-50' },
-      { label: '个人总积分', value: user.points.toLocaleString(), icon: <TrendingUp size={20} />, textColor: 'text-nb-red', bgColor: 'bg-red-50' },
+      { label: '个人总积分', value: (Number(user.points) || 0).toLocaleString(), icon: <TrendingUp size={20} />, textColor: 'text-nb-red', bgColor: 'bg-red-50' },
     ];
   }, [demands, user]);
 

@@ -16,9 +16,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, users, onNavClick, className })
 
   const displayPoints = useMemo(() => {
     if (user.role === UserRole.ADMIN) {
-      return users.filter(u => u.role !== UserRole.ADMIN).reduce((sum, u) => sum + u.points, 0);
+      return (users || []).filter(u => u.role !== UserRole.ADMIN).reduce((sum, u) => sum + (Number(u.points) || 0), 0);
     }
-    return user.points;
+    return Number(user.points) || 0;
   }, [user, users]);
 
   return (
@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, users, onNavClick, className })
             {user.role === UserRole.ADMIN ? '全行结算总池' : '个人积分余额'}
           </p>
           <div className="flex items-center justify-between">
-            <span className="text-2xl font-black text-white">{displayPoints.toLocaleString()}</span>
+            <span className="text-2xl font-black text-white">{(displayPoints || 0).toLocaleString()}</span>
             <div className="h-6 w-6 bg-yellow-400 rounded-full flex items-center justify-center">
               <span className="text-[10px] font-black text-slate-900">P</span>
             </div>

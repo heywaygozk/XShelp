@@ -31,11 +31,11 @@ const mapUser = (u: any): User => ({
   employeeId: u.employee_id,
   username: u.username,
   realName: u.real_name,
-  password: u.password || '123456', // 映射密码字段
+  password: u.password || '123456', 
   dept: u.dept,
   line: u.line,
   role: u.role,
-  points: u.points,
+  points: Number(u.points || 0),
   avatar: u.avatar
 });
 
@@ -133,8 +133,6 @@ const App: React.FC = () => {
     setCurrentUser(null);
     localStorage.removeItem('nb_user');
   };
-
-  // --- 写入云端的方法 ---
 
   const addResource = async (res: Resource) => {
     if (supabase) {
@@ -234,7 +232,6 @@ const App: React.FC = () => {
   };
 
   const updateUsers = async (newUsers: User[]) => {
-    setUsers(newUsers);
     if (supabase) {
       for (const u of newUsers) {
         await supabase.from('users').upsert({
@@ -242,18 +239,65 @@ const App: React.FC = () => {
           employee_id: u.employeeId,
           username: u.username,
           real_name: u.realName,
-          password: u.password, // 保存密码
+          password: u.password || '123456',
           dept: u.dept,
           line: u.line,
           role: u.role,
-          points: u.points,
+          points: Number(u.points || 0),
           avatar: u.avatar
         });
       }
     }
+    const { data } = await supabase!.from('users').select('*');
+    if (data) setUsers(data.map(mapUser));
   };
 
-  // 新增：修改个人密码
+  const handleUpdateDemands = async (newDemands: Demand[]) => {
+    if (supabase) {
+      // 批量 upsert 云端，此处由于 did 是主键，可以批量同步
+      for (const d of newDemands) {
+        await supabase.from('demands').upsert({
+          did: d.did,
+          title: d.title,
+          description: d.description,
+          customer_info: d.customerInfo,
+          reward_type: d.rewardType,
+          reward_value: d.rewardValue,
+          urgency: d.urgency,
+          is_recommended: d.isRecommended,
+          tags: d.tags,
+          status: d.status,
+          creator_id: d.creatorId,
+          creator_name: d.creatorName,
+          creator_avatar: d.creatorAvatar,
+          created_at: d.createdAt,
+          comments: d.comments
+        });
+      }
+    }
+    setDemands(newDemands);
+  };
+
+  const handleUpdateResources = async (newResources: Resource[]) => {
+    if (supabase) {
+      for (const r of newResources) {
+        await supabase.from('resources').upsert({
+          rid: r.rid,
+          title: r.title,
+          description: r.description,
+          type: r.type,
+          tags: r.tags,
+          owner: r.owner,
+          owner_avatar: r.ownerAvatar,
+          status: r.status,
+          created_at: r.createdAt,
+          comments: r.comments
+        });
+      }
+    }
+    setResources(newResources);
+  };
+
   const handleUpdatePassword = async (uid: string, newPass: string) => {
     if (supabase) {
       const { error } = await supabase.from('users').update({ password: newPass }).eq('uid', uid);
@@ -275,7 +319,7 @@ const App: React.FC = () => {
     </div>
   );
   
-  if (!activeUser) return <LoginView onLogin={handleLogin} users={users} />;
+  if (!activeUser) return <LoginView onLogin={handleLogin} users={users} onSeedData={updateUsers} />;
 
   return (
     <Router>
@@ -301,7 +345,7 @@ const App: React.FC = () => {
               <Route path="/resources/upload" element={<ResourceUploadView user={activeUser} onUpload={addResource} />} />
               <Route path="/resources/:id" element={<ResourceDetailView user={activeUser} resources={resources} onUpdate={updateResource} onDelete={deleteResource} onAddComment={(id, c) => addComment('RESOURCE', id, c)} />} />
               <Route path="/points" element={<PointsView user={activeUser} onUpdatePassword={handleUpdatePassword} />} />
-              <Route path="/admin" element={<AdminView users={users} demands={demands} resources={resources} onUpdateUsers={updateUsers} onUpdateDemands={setDemands} onUpdateResources={setResources} />} />
+              <Route path="/admin" element={<AdminView users={users} demands={demands} resources={resources} onUpdateUsers={updateUsers} onUpdateDemands={handleUpdateDemands} onUpdateResources={handleUpdateResources} />} />
               <Route path="/analytics" element={<AnalyticsView user={activeUser} demands={demands} resources={resources} users={users} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

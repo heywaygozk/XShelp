@@ -20,10 +20,10 @@ export const NAVIGATION_ITEMS = [
 ];
 
 export const MOCK_USERS: User[] = [
-  { uid: 'u1', employeeId: 'NB001', username: 'admin01', realName: '王管理', dept: '信息技术部', line: '中后台', role: UserRole.ADMIN, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin' },
-  { uid: 'u2', employeeId: 'NB002', username: 'pre01', realName: '李行长', dept: '支行办公室', line: '运营', role: UserRole.PRESIDENT, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=pre' },
-  { uid: 'u3', employeeId: 'NB003', username: 'emp01', realName: '张小凡', dept: '零售银行部', line: '零售', role: UserRole.EMPLOYEE, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emp1' },
-  { uid: 'u4', employeeId: 'NB004', username: 'emp02', realName: '赵默笙', dept: '公司业务部', line: '公司', role: UserRole.EMPLOYEE, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emp2' },
+  { uid: 'u1', employeeId: 'NB001', username: 'admin01', password: '123456', realName: '王管理', dept: '信息技术部', line: '中后台', role: UserRole.ADMIN, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin' },
+  { uid: 'u2', employeeId: 'NB002', username: 'pre01', password: '123456', realName: '李行长', dept: '支行办公室', line: '运营', role: UserRole.PRESIDENT, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=pre' },
+  { uid: 'u3', employeeId: 'NB003', username: 'emp01', password: '123456', realName: '张小凡', dept: '零售银行部', line: '零售', role: UserRole.EMPLOYEE, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emp1' },
+  { uid: 'u4', employeeId: 'NB004', username: 'emp02', password: '123456', realName: '赵默笙', dept: '公司业务部', line: '公司', role: UserRole.EMPLOYEE, points: 10000, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emp2' },
 ];
 
 export const DEMAND_TAGS = {
