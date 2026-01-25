@@ -22,7 +22,8 @@ const AdminView: React.FC<AdminViewProps> = ({ users, demands, resources, onUpda
     let content = "";
     let name = "";
     if (type === 'USER') {
-      content = "工号,姓名,部门,条线(公司/零售/个人/运营/中后台),角色(EMPLOYEE/VP/PRESIDENT),积分\nNB005,李小明,普陀支行,零售,EMPLOYEE,5000";
+      // 在模板中新增“密码”列
+      content = "工号,姓名,部门,条线(公司/零售/个人/运营/中后台),角色(EMPLOYEE/VP/PRESIDENT),积分,密码\nNB005,李小明,普陀支行,零售,EMPLOYEE,5000,123456";
       name = "员工导入模板.csv";
     } else if (type === 'DEMAND') {
       content = "标题,客户信息,需求描述,激励数值,激励类型(POINTS/AMOUNT),紧迫度(正常/紧急/十万火急),发布人姓名,发布人工号,发布人部门,发布人条线,状态(待接单/已接单/已完成),发布时间(YYYY-MM-DD)\n某出口企业融资需求,象山某针织厂,需要外币贸易融资方案,1000,POINTS,紧急,王小二,NB999,象山支行营业部,公司,待接单,2024-03-20";
@@ -52,9 +53,15 @@ const AdminView: React.FC<AdminViewProps> = ({ users, demands, resources, onUpda
             const c = r.split(',');
             return {
               uid: `u${Math.random().toString(36).substr(2, 9)}`,
-              employeeId: c[0], username: c[0], realName: c[1], dept: c[2],
-              line: (c[3] || '公司') as any, role: (c[4] || 'EMPLOYEE') as any,
-              points: parseInt(c[5]) || 0, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${c[0]}`
+              employeeId: c[0], 
+              username: c[0], 
+              realName: c[1], 
+              dept: c[2],
+              line: (c[3] || '公司') as any, 
+              role: (c[4] || 'EMPLOYEE') as any,
+              points: parseInt(c[5]) || 0,
+              password: c[6]?.trim() || '123456', // 读取密码列
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${c[0]}`
             };
           });
           onUpdateUsers([...users, ...newUsers]);

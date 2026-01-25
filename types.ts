@@ -29,6 +29,7 @@ export interface User {
   employeeId: string;
   username: string;
   realName: string;
+  password?: string; // 新增密码字段
   dept: string;
   line: '公司' | '零售' | '个人' | '运营' | '中后台';
   role: UserRole;
