@@ -47,7 +47,6 @@ const mapDemand = (d: any): Demand => ({
   rewardType: d.reward_type,
   rewardValue: d.reward_value,
   urgency: d.urgency,
-  // 核心：强制布尔转换
   isRecommended: d.is_recommended === true, 
   tags: d.tags || [],
   status: d.status,
@@ -168,8 +167,15 @@ const App: React.FC = () => {
 
   const updateResource = async (rid: string, updates: Partial<Resource>) => {
     if (supabase) {
-      const dbUpdates: any = { ...updates };
-      if (updates.ownerAvatar) { dbUpdates.owner_avatar = updates.ownerAvatar; }
+      const dbUpdates: any = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.type !== undefined) dbUpdates.type = updates.type;
+      if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.ownerAvatar !== undefined) dbUpdates.owner_avatar = updates.ownerAvatar;
+      if (updates.comments !== undefined) dbUpdates.comments = updates.comments;
+
       await supabase.from('resources').update(dbUpdates).eq('rid', rid);
     }
     setResources(prev => prev.map(r => r.rid === rid ? { ...r, ...updates } : r));
@@ -215,7 +221,6 @@ const App: React.FC = () => {
     if (!currentDemand) return;
 
     if (supabase) {
-      // 核心：构建数据库专用更新对象
       const dbUpdates: any = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
@@ -235,7 +240,6 @@ const App: React.FC = () => {
         return;
       }
 
-      // 通知逻辑：接单
       if (updates.status === DemandStatus.ACCEPTED && currentDemand.status === DemandStatus.PUBLISHED) {
         addNotification({
           title: '需求已被承接',
@@ -245,7 +249,6 @@ const App: React.FC = () => {
         });
       }
 
-      // 通知逻辑：完成
       if (updates.status === DemandStatus.COMPLETED && currentDemand.status !== DemandStatus.COMPLETED) {
         const hId = updates.helperId || currentDemand.helperId;
         if (hId) {
@@ -267,7 +270,6 @@ const App: React.FC = () => {
         }
       }
     }
-    // 即使没联网，也先更新本地 UI
     setDemands(prev => prev.map(d => d.did === did ? { ...d, ...updates } : d));
   };
 
@@ -282,8 +284,11 @@ const App: React.FC = () => {
     const currentItem = type === 'DEMAND' ? demands.find(d => d.did === id) : resources.find(r => r.rid === id);
     if (!currentItem) return;
 
-    const newComments = [...currentItem.comments, comment];
-    if (supabase) await supabase.from(table).update({ comments: newComments }).eq(idKey, id);
+    const newComments = [...(currentItem.comments || []), comment];
+    
+    if (supabase) {
+      await supabase.from(table).update({ comments: newComments }).eq(idKey, id);
+    }
     
     let targetUid = '';
     if (type === 'DEMAND') {
