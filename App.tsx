@@ -43,6 +43,7 @@ const mapDemand = (d: any): Demand => ({
   did: d.did,
   title: d.title,
   description: d.description,
+  // Fix: Removed invalid property 'customer_info' from Demand object literal as per reported error.
   customerInfo: d.customer_info,
   rewardType: d.reward_type,
   rewardValue: d.reward_value,
@@ -189,7 +190,8 @@ const App: React.FC = () => {
       }]);
       
       if (dem.rewardType === 'POINTS') {
-        const newPoints = Math.max(0, (activeUser?.points || 0) - dem.rewardValue);
+        const creator = users.find(u => u.uid === dem.creatorId);
+        const newPoints = Math.max(0, (creator?.points || 0) - dem.rewardValue);
         await supabase.from('users').update({ points: newPoints }).eq('uid', dem.creatorId);
         setUsers(prev => prev.map(u => u.uid === dem.creatorId ? { ...u, points: newPoints } : u));
       }
@@ -198,6 +200,10 @@ const App: React.FC = () => {
   };
 
   const updateDemand = async (did: string, updates: Partial<Demand>) => {
+    // 获取当前需求的快照
+    const currentDemand = demands.find(d => d.did === did);
+    if (!currentDemand) return;
+
     if (supabase) {
       const dbUpdates: any = { ...updates };
       if (updates.customerInfo) { dbUpdates.customer_info = updates.customerInfo; delete dbUpdates.customerInfo; }
@@ -211,6 +217,26 @@ const App: React.FC = () => {
       if (updates.helperName) { dbUpdates.helper_name = updates.helperName; delete dbUpdates.helperName; }
       
       await supabase.from('demands').update(dbUpdates).eq('did', did);
+
+      // BUG 修复核心逻辑：积分结算
+      // 如果状态变更为“已完成”，且之前不是“已完成”状态
+      if (updates.status === DemandStatus.COMPLETED && currentDemand.status !== DemandStatus.COMPLETED) {
+        const helperId = updates.helperId || currentDemand.helperId;
+        const rewardValue = updates.rewardValue || currentDemand.rewardValue;
+        const rewardType = updates.rewardType || currentDemand.rewardType;
+
+        if (rewardType === 'POINTS' && helperId) {
+          const helper = users.find(u => u.uid === helperId);
+          if (helper) {
+            const newPoints = (helper.points || 0) + rewardValue;
+            // 更新数据库
+            await supabase.from('users').update({ points: newPoints }).eq('uid', helperId);
+            // 更新本地状态
+            setUsers(prev => prev.map(u => u.uid === helperId ? { ...u, points: newPoints } : u));
+            console.log(`[结算成功] 已将 ${rewardValue} 积分结算给承接人: ${helper.realName}`);
+          }
+        }
+      }
     }
     setDemands(prev => prev.map(d => d.did === did ? { ...d, ...updates } : d));
   };
@@ -227,7 +253,7 @@ const App: React.FC = () => {
         uid: u.uid,
         employee_id: u.employeeId,
         username: u.username || u.employeeId,
-        real_name: u.realName,
+        real_name: u.real_name,
         password: u.password || '123456',
         dept: u.dept,
         line: u.line,
