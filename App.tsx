@@ -134,6 +134,7 @@ const App: React.FC = () => {
     localStorage.removeItem('nb_user');
   };
 
+  // --- 资源管理 ---
   const addResource = async (res: Resource) => {
     if (supabase) {
       await supabase.from('resources').insert([{
@@ -166,6 +167,7 @@ const App: React.FC = () => {
     setResources(prev => prev.filter(r => r.rid !== rid));
   };
 
+  // --- 需求管理 ---
   const addDemand = async (dem: Demand) => {
     if (supabase) {
       await supabase.from('demands').insert([{
@@ -218,43 +220,46 @@ const App: React.FC = () => {
     setDemands(prev => prev.filter(d => d.did !== did));
   };
 
-  const addComment = async (type: 'DEMAND' | 'RESOURCE', id: string, comment: Comment) => {
-    const table = type === 'DEMAND' ? 'demands' : 'resources';
-    const idKey = type === 'DEMAND' ? 'did' : 'rid';
-    const currentItem = type === 'DEMAND' ? demands.find(d => d.did === id) : resources.find(r => r.rid === id);
-    if (!currentItem) return;
-
-    const newComments = [...currentItem.comments, comment];
-    if (supabase) await supabase.from(table).update({ comments: newComments }).eq(idKey, id);
-    
-    if (type === 'DEMAND') setDemands(prev => prev.map(d => d.did === id ? { ...d, comments: newComments } : d));
-    else setResources(prev => prev.map(r => r.rid === id ? { ...r, comments: newComments } : r));
+  // --- 成员管理 ---
+  const handleUpsertUser = async (u: User) => {
+    if (supabase) {
+      await supabase.from('users').upsert({
+        uid: u.uid,
+        employee_id: u.employeeId,
+        username: u.username || u.employeeId,
+        real_name: u.realName,
+        password: u.password || '123456',
+        dept: u.dept,
+        line: u.line,
+        role: u.role,
+        points: Number(u.points || 0),
+        avatar: u.avatar
+      });
+    }
+    setUsers(prev => {
+      const exists = prev.find(item => item.uid === u.uid);
+      if (exists) return prev.map(item => item.uid === u.uid ? u : item);
+      return [...prev, u];
+    });
   };
 
-  const updateUsers = async (newUsers: User[]) => {
+  const handleDeleteUser = async (uid: string) => {
+    if (supabase) {
+      await supabase.from('users').delete().eq('uid', uid);
+    }
+    setUsers(prev => prev.filter(u => u.uid !== uid));
+  };
+
+  const handleUpdateUsers = async (newUsers: User[]) => {
     if (supabase) {
       for (const u of newUsers) {
-        await supabase.from('users').upsert({
-          uid: u.uid,
-          employee_id: u.employeeId,
-          username: u.username,
-          real_name: u.realName,
-          password: u.password || '123456',
-          dept: u.dept,
-          line: u.line,
-          role: u.role,
-          points: Number(u.points || 0),
-          avatar: u.avatar
-        });
+        await handleUpsertUser(u);
       }
     }
-    const { data } = await supabase!.from('users').select('*');
-    if (data) setUsers(data.map(mapUser));
   };
 
   const handleUpdateDemands = async (newDemands: Demand[]) => {
     if (supabase) {
-      // 批量 upsert 云端，此处由于 did 是主键，可以批量同步
       for (const d of newDemands) {
         await supabase.from('demands').upsert({
           did: d.did,
@@ -298,6 +303,19 @@ const App: React.FC = () => {
     setResources(newResources);
   };
 
+  const addComment = async (type: 'DEMAND' | 'RESOURCE', id: string, comment: Comment) => {
+    const table = type === 'DEMAND' ? 'demands' : 'resources';
+    const idKey = type === 'DEMAND' ? 'did' : 'rid';
+    const currentItem = type === 'DEMAND' ? demands.find(d => d.did === id) : resources.find(r => r.rid === id);
+    if (!currentItem) return;
+
+    const newComments = [...currentItem.comments, comment];
+    if (supabase) await supabase.from(table).update({ comments: newComments }).eq(idKey, id);
+    
+    if (type === 'DEMAND') setDemands(prev => prev.map(d => d.did === id ? { ...d, comments: newComments } : d));
+    else setResources(prev => prev.map(r => r.rid === id ? { ...r, comments: newComments } : r));
+  };
+
   const handleUpdatePassword = async (uid: string, newPass: string) => {
     if (supabase) {
       const { error } = await supabase.from('users').update({ password: newPass }).eq('uid', uid);
@@ -319,7 +337,7 @@ const App: React.FC = () => {
     </div>
   );
   
-  if (!activeUser) return <LoginView onLogin={handleLogin} users={users} onSeedData={updateUsers} />;
+  if (!activeUser) return <LoginView onLogin={handleLogin} users={users} onSeedData={handleUpdateUsers} />;
 
   return (
     <Router>
@@ -345,7 +363,7 @@ const App: React.FC = () => {
               <Route path="/resources/upload" element={<ResourceUploadView user={activeUser} onUpload={addResource} />} />
               <Route path="/resources/:id" element={<ResourceDetailView user={activeUser} resources={resources} onUpdate={updateResource} onDelete={deleteResource} onAddComment={(id, c) => addComment('RESOURCE', id, c)} />} />
               <Route path="/points" element={<PointsView user={activeUser} onUpdatePassword={handleUpdatePassword} />} />
-              <Route path="/admin" element={<AdminView users={users} demands={demands} resources={resources} onUpdateUsers={updateUsers} onUpdateDemands={handleUpdateDemands} onUpdateResources={handleUpdateResources} />} />
+              <Route path="/admin" element={<AdminView users={users} demands={demands} resources={resources} onUpsertUser={handleUpsertUser} onDeleteUser={handleDeleteUser} onUpdateDemands={handleUpdateDemands} onUpdateResources={handleUpdateResources} />} />
               <Route path="/analytics" element={<AnalyticsView user={activeUser} demands={demands} resources={resources} users={users} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
