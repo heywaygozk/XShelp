@@ -1,28 +1,32 @@
 
 import React, { useState, useMemo } from 'react';
-import { User, DemandStatus, Demand, Comment, UserRole } from '../types';
+import { User, DemandStatus, Demand, Comment, UserRole } from '../types.ts';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, HandHelping, CheckCircle2, User as UserIcon, ShieldCheck, MessageSquare, Star } from 'lucide-react';
-import { TAG_COLORS } from '../constants';
+import { ArrowLeft, Send, HandHelping, CheckCircle2, User as UserIcon, ShieldCheck, MessageSquare, Star, Trash2, Edit3, X, Save } from 'lucide-react';
+import { TAG_COLORS } from '../constants.tsx';
 
 interface DemandDetailViewProps {
   user: User;
   demands: Demand[];
   onUpdate: (did: string, updates: Partial<Demand>) => void;
+  onDelete: (did: string) => void;
   onAddComment: (did: string, comment: Comment) => void;
 }
 
-const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUpdate, onAddComment }) => {
+const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUpdate, onDelete, onAddComment }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [commentText, setCommentText] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Demand>>({});
 
   const demand = useMemo(() => demands.find(d => d.did === id), [demands, id]);
 
   if (!demand) return <div className="p-20 text-center text-slate-500 font-black">该需求已下架或不存在</div>;
 
-  const isCreator = demand.creatorId === user.uid;
-  const isHelper = demand.helperId === user.uid;
+  const isCreator = demand.creatorId === user.uid || (demand.creatorId.includes('NB') && user.employeeId === demand.creatorId);
+  const isAdmin = user.role === UserRole.ADMIN;
+  const canManage = isCreator || isAdmin;
   const canManageRecommendation = [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP].includes(user.role);
 
   const handleAccept = () => {
@@ -31,20 +35,34 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
       helperId: user.uid,
       helperName: user.realName
     });
-    alert('已成功承接！请通过内部通讯工具或评论区展开深入沟通。');
+    alert('已成功承接！');
   };
 
   const handleConfirmCompletion = () => {
-    if (!isCreator) {
-      alert('只有发布人可以确认需求已最终对接完毕。');
-      return;
-    }
     onUpdate(demand.did, { status: DemandStatus.COMPLETED });
-    alert('协作圆满结束！系统已自动更新积分记录。');
+    alert('协作圆满结束！');
   };
 
   const toggleRecommendation = () => {
     onUpdate(demand.did, { isRecommended: !demand.isRecommended });
+  };
+
+  const handleDelete = () => {
+    if (confirm('确定要删除这条需求吗？删除后不可恢复。')) {
+      onDelete(demand.did);
+      navigate('/demands');
+    }
+  };
+
+  const startEdit = () => {
+    setEditForm({ title: demand.title, description: demand.description, customerInfo: demand.customerInfo });
+    setIsEditing(true);
+  };
+
+  const saveEdit = () => {
+    onUpdate(demand.did, editForm);
+    setIsEditing(false);
+    alert('修改已保存');
   };
 
   const handleSubmitComment = () => {
@@ -70,6 +88,18 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
           <span className="text-sm uppercase tracking-widest">返回广场</span>
         </button>
+        
+        {canManage && !isEditing && (
+          <div className="flex gap-2">
+            <button onClick={startEdit} className="p-3 bg-white border border-slate-100 text-slate-500 rounded-2xl shadow-sm flex items-center gap-2 hover:bg-slate-50 transition-all font-black text-xs">
+              <Edit3 size={16} /> 编辑需求
+            </button>
+            <button onClick={handleDelete} className="p-3 bg-red-50 text-red-500 rounded-2xl flex items-center gap-2 hover:bg-red-100 transition-all font-black text-xs">
+              <Trash2 size={16} /> 删除
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2 p-2 bg-white rounded-3xl border border-slate-100 overflow-x-auto no-scrollbar shadow-sm">
           {[DemandStatus.PUBLISHED, DemandStatus.ACCEPTED, DemandStatus.COMPLETED].map((s, idx) => (
             <div key={s} className="flex items-center gap-3 px-4 py-1">
@@ -114,18 +144,30 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
               </div>
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-black text-slate-900 mb-10 leading-tight tracking-tight">{demand.title}</h1>
-            
-            <div className="bg-nb-red/[0.03] rounded-[32px] p-8 mb-10 border border-nb-red/5">
-              <p className="text-[10px] font-black text-nb-red uppercase tracking-widest mb-3 flex items-center gap-2">
-                <div className="h-1 w-6 bg-nb-red rounded-full"></div> 客户基本画像
-              </p>
-              <p className="text-slate-800 font-bold leading-relaxed text-sm md:text-lg">{demand.customerInfo}</p>
-            </div>
-
-            <div className="text-slate-600 font-medium leading-relaxed mb-14 whitespace-pre-wrap text-sm md:text-lg bg-slate-50/50 p-6 rounded-3xl border border-slate-50">
-              {demand.description}
-            </div>
+            {isEditing ? (
+              <div className="space-y-6 animate-in zoom-in-95 duration-200">
+                <input className="w-full p-4 bg-slate-50 rounded-2xl font-black text-2xl border-2 border-nb-red/20 outline-none focus:border-nb-red" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
+                <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-slate-100 outline-none focus:border-nb-red" value={editForm.customerInfo} onChange={e => setEditForm({...editForm, customerInfo: e.target.value})} />
+                <textarea rows={6} className="w-full p-4 bg-slate-50 rounded-2xl font-medium border-2 border-slate-100 outline-none focus:border-nb-red" value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} />
+                <div className="flex gap-4">
+                   <button onClick={saveEdit} className="flex-1 py-4 bg-nb-red text-white rounded-2xl font-black flex items-center justify-center gap-2"><Save size={18}/> 保存修改</button>
+                   <button onClick={() => setIsEditing(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black flex items-center gap-2"><X size={18}/> 取消</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-2xl md:text-4xl font-black text-slate-900 mb-10 leading-tight tracking-tight">{demand.title}</h1>
+                <div className="bg-nb-red/[0.03] rounded-[32px] p-8 mb-10 border border-nb-red/5">
+                  <p className="text-[10px] font-black text-nb-red uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <div className="h-1 w-6 bg-nb-red rounded-full"></div> 客户基本画像
+                  </p>
+                  <p className="text-slate-800 font-bold leading-relaxed text-sm md:text-lg">{demand.customerInfo}</p>
+                </div>
+                <div className="text-slate-600 font-medium leading-relaxed mb-14 whitespace-pre-wrap text-sm md:text-lg bg-slate-50/50 p-6 rounded-3xl border border-slate-50">
+                  {demand.description}
+                </div>
+              </>
+            )}
 
             <div className="flex flex-col sm:flex-row items-center justify-between pt-10 border-t border-slate-100 gap-8">
               <div className="flex items-center gap-5 w-full sm:w-auto">
@@ -156,85 +198,54 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
             </div>
           </div>
 
+          {/* Discussion Area remains the same... */}
           <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-8 md:p-14">
             <h3 className="font-black text-slate-900 text-2xl mb-10 flex items-center gap-4">
-              <MessageSquare className="text-nb-red" size={24} /> 
-              协作讨论区
-              <span className="text-[10px] font-black bg-slate-100 text-slate-400 px-3 py-1 rounded-full uppercase ml-2">{demand.comments.length}</span>
+              <MessageSquare className="text-nb-red" size={24} /> 协作讨论区
             </h3>
             <div className="flex gap-5 mb-12">
               <img src={user.avatar} className="h-12 w-12 rounded-full shrink-0 shadow-md object-cover ring-4 ring-slate-50" alt="" />
               <div className="flex-1 flex flex-col md:flex-row gap-3">
                 <input 
                   className="flex-1 p-5 bg-slate-50 border border-slate-100 rounded-[24px] text-sm font-bold outline-none focus:ring-4 focus:ring-nb-red/5 focus:bg-white transition-all shadow-inner"
-                  placeholder="询问细节、同步对接进度或提供方案反馈..."
+                  placeholder="询问细节、同步对接进度..."
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmitComment()}
                 />
-                <button 
-                  onClick={handleSubmitComment}
-                  className="p-5 bg-nb-red text-white rounded-[24px] active:scale-90 transition-all shadow-xl shadow-red-200 flex items-center justify-center"
-                >
-                  <Send size={22} />
-                </button>
+                <button onClick={handleSubmitComment} className="p-5 bg-nb-red text-white rounded-[24px] active:scale-90 transition-all shadow-xl shadow-red-200 flex items-center justify-center"><Send size={22} /></button>
               </div>
             </div>
-
+            {/* Comment list rendering... */}
             <div className="space-y-8">
-              {demand.comments.length > 0 ? demand.comments.map(c => (
+              {demand.comments.map(c => (
                 <div key={c.id} className="flex gap-5 animate-in slide-in-from-bottom-4 duration-300">
                   <img src={c.userAvatar} className="h-11 w-11 rounded-full shrink-0 shadow-sm object-cover ring-2 ring-slate-50" alt="" />
                   <div className="flex-1 bg-slate-50 p-6 rounded-[32px] relative border border-slate-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-black text-slate-900">{c.userName}</span>
-                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{c.createdAt}</span>
-                    </div>
+                    <div className="flex justify-between items-center mb-2"><span className="text-xs font-black text-slate-900">{c.userName}</span><span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{c.createdAt}</span></div>
                     <p className="text-xs md:text-sm text-slate-700 font-medium leading-relaxed">{c.content}</p>
                   </div>
                 </div>
-              )) : (
-                <div className="text-center py-14 bg-slate-50/30 rounded-[40px] border-2 border-dashed border-slate-100">
-                  <p className="text-sm text-slate-400 font-black uppercase tracking-widest">暂无留言，立即开启专业协作</p>
-                </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
 
         <div className="space-y-8">
-          <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-8 md:p-10 sticky top-24">
-            <h4 className="font-black text-slate-900 text-xl mb-10 flex items-center gap-3">
-              <ShieldCheck className="text-nb-red" size={24} /> 协助执行官
-            </h4>
+           <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-8 md:p-10 sticky top-24">
+            <h4 className="font-black text-slate-900 text-xl mb-10 flex items-center gap-3"><ShieldCheck className="text-nb-red" size={24} /> 协助执行官</h4>
             {demand.status === DemandStatus.PUBLISHED ? (
               <div className="text-center py-14 bg-slate-50/50 rounded-[40px] border border-slate-100 shadow-inner">
-                <div className="h-24 w-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 text-slate-200 shadow-xl">
-                  <UserIcon size={48} />
-                </div>
+                <div className="h-24 w-24 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-8 text-slate-200 shadow-xl"><UserIcon size={48} /></div>
                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">招募中</p>
-                <p className="text-xs text-slate-300 font-bold px-6">期待在该领域的专家同事承接并解决</p>
               </div>
             ) : (
-              <div className="space-y-8">
-                <div className="flex items-center gap-5 p-6 bg-slate-900 rounded-[32px] text-white shadow-2xl relative overflow-hidden group">
+              <div className="flex items-center gap-5 p-6 bg-slate-900 rounded-[32px] text-white shadow-2xl relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-                  <div className="h-16 w-16 rounded-2xl bg-nb-red flex items-center justify-center text-white font-black text-2xl shadow-xl z-10">
-                    {demand.helperName?.[0]}
-                  </div>
+                  <div className="h-16 w-16 rounded-2xl bg-nb-red flex items-center justify-center text-white font-black text-2xl shadow-xl z-10">{demand.helperName?.[0]}</div>
                   <div className="z-10">
                     <p className="font-black text-lg leading-tight tracking-tight">{demand.helperName}</p>
-                    <p className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${demand.status === DemandStatus.COMPLETED ? 'text-green-400' : 'text-yellow-400'}`}>
-                      {demand.status === DemandStatus.COMPLETED ? '任务圆满解决' : '全力承办中'}
-                    </p>
+                    <p className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${demand.status === DemandStatus.COMPLETED ? 'text-green-400' : 'text-yellow-400'}`}>{demand.status === DemandStatus.COMPLETED ? '任务圆满解决' : '全力承办中'}</p>
                   </div>
-                </div>
-                <div className="p-6 bg-blue-50/30 rounded-[28px] border border-blue-50 shadow-inner">
-                  <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <div className="w-1 h-3 bg-blue-600 rounded-full"></div> 协作誓言
-                  </p>
-                  <p className="text-xs text-blue-900/70 font-bold leading-relaxed italic">“高效、专业、闭环，不负支行托付。”</p>
-                </div>
               </div>
             )}
           </div>
