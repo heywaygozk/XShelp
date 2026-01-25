@@ -25,9 +25,12 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
   if (!demand) return <div className="p-20 text-center text-slate-500 font-black">该需求已下架或不存在</div>;
 
   const isCreator = demand.creatorId === user.uid || (demand.creatorId.includes('NB') && user.employeeId === demand.creatorId);
-  const isAdmin = user.role === UserRole.ADMIN;
+  const userRole = user.role?.toUpperCase();
+  const isAdmin = userRole === UserRole.ADMIN;
+  
+  // 推荐权限判定：管理员、正职行长、副行长
+  const canManageRecommendation = [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP].includes(userRole as UserRole);
   const canManage = isCreator || isAdmin;
-  const canManageRecommendation = [UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VP].includes(user.role);
 
   const handleAccept = () => {
     onUpdate(demand.did, { 
@@ -35,12 +38,12 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
       helperId: user.uid,
       helperName: user.realName
     });
-    alert('已成功承接！');
+    alert('已成功承接！系统已通知发布人。');
   };
 
   const handleConfirmCompletion = () => {
     onUpdate(demand.did, { status: DemandStatus.COMPLETED });
-    alert('协作圆满结束！');
+    alert('协作圆满结束！奖励已结算给承接人。');
   };
 
   const toggleRecommendation = () => {
@@ -131,7 +134,7 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
                 {canManageRecommendation && (
                   <button 
                     onClick={toggleRecommendation}
-                    className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all shadow-md active:scale-95 ${demand.isRecommended ? 'bg-slate-800 text-yellow-400' : 'bg-white border border-slate-200 text-slate-400 hover:border-nb-red hover:text-nb-red'}`}
+                    className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all shadow-md active:scale-95 ${demand.isRecommended ? 'bg-slate-800 text-yellow-400 border-slate-800' : 'bg-white border border-slate-200 text-slate-400 hover:border-nb-red hover:text-nb-red'}`}
                   >
                     <ShieldCheck size={16} />
                     {demand.isRecommended ? '取消推荐' : '设为行长推荐'}
@@ -198,7 +201,6 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
             </div>
           </div>
 
-          {/* Discussion Area remains the same... */}
           <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-8 md:p-14">
             <h3 className="font-black text-slate-900 text-2xl mb-10 flex items-center gap-4">
               <MessageSquare className="text-nb-red" size={24} /> 协作讨论区
@@ -215,7 +217,6 @@ const DemandDetailView: React.FC<DemandDetailViewProps> = ({ user, demands, onUp
                 <button onClick={handleSubmitComment} className="p-5 bg-nb-red text-white rounded-[24px] active:scale-90 transition-all shadow-xl shadow-red-200 flex items-center justify-center"><Send size={22} /></button>
               </div>
             </div>
-            {/* Comment list rendering... */}
             <div className="space-y-8">
               {demand.comments.map(c => (
                 <div key={c.id} className="flex gap-5 animate-in slide-in-from-bottom-4 duration-300">
