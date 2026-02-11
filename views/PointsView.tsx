@@ -1,21 +1,31 @@
 
-import React, { useState } from 'react';
-import { User, PointsLog } from '../types';
-import { Coins, History, Calendar, Lock, ShieldCheck, ChevronRight } from 'lucide-react';
-
-const MOCK_LOGS: PointsLog[] = [
-  { id: 'l1', userId: 'u3', changeAmount: 500, balanceAfter: 10500, operator: '系统', reason: '资源分享获得好评', timestamp: '2024-03-12 14:20' },
-  { id: 'l2', userId: 'u3', changeAmount: -200, balanceAfter: 10300, operator: '管理员', reason: '发布需求预扣除', timestamp: '2024-03-10 09:15' },
-];
+import React, { useState, useMemo } from 'react';
+import { User, UserRole } from '../types';
+import { Coins, History, Calendar, Lock, ShieldCheck } from 'lucide-react';
 
 interface PointsViewProps {
   user: User;
+  logs: any[];
+  users: User[];
   onUpdatePassword?: (uid: string, newPass: string) => void;
 }
 
-const PointsView: React.FC<PointsViewProps> = ({ user, onUpdatePassword }) => {
+const PointsView: React.FC<PointsViewProps> = ({ user, logs = [], users = [], onUpdatePassword }) => {
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [passwords, setPasswords] = useState({ old: '', new: '', confirm: '' });
+
+  // 根据角色过滤流水逻辑
+  const visibleLogs = useMemo(() => {
+    let filtered = [];
+    if (user.role === UserRole.ADMIN) {
+      // 管理员看到全量流水
+      filtered = logs;
+    } else {
+      // 普通员工仅看到自己的流水
+      filtered = logs.filter(l => l.uid === user.uid);
+    }
+    return filtered;
+  }, [logs, user.uid, user.role]);
 
   const handlePassChange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +44,12 @@ const PointsView: React.FC<PointsViewProps> = ({ user, onUpdatePassword }) => {
     onUpdatePassword?.(user.uid, passwords.new);
     setIsChangingPass(false);
     setPasswords({ old: '', new: '', confirm: '' });
+  };
+
+  // 辅助函数：根据 UID 寻找行员姓名（仅管理员视图需要）
+  const getEmployeeName = (uid: string) => {
+    const u = users.find(item => item.uid === uid);
+    return u ? u.realName : '未知用户';
   };
 
   return (
@@ -58,7 +74,7 @@ const PointsView: React.FC<PointsViewProps> = ({ user, onUpdatePassword }) => {
             <div className="p-8 border-b border-slate-50 flex items-center justify-between">
               <h3 className="font-black text-slate-900 flex items-center gap-2">
                 <History size={18} className="text-nb-red" />
-                积分变动明细
+                积分变动明细 {user.role === UserRole.ADMIN && <span className="text-xs bg-red-50 text-nb-red px-2 py-1 rounded-lg">管理员全量视图</span>}
               </h3>
               <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:scale-90"><Calendar size={18} /></button>
             </div>
@@ -67,27 +83,39 @@ const PointsView: React.FC<PointsViewProps> = ({ user, onUpdatePassword }) => {
                 <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <tr>
                     <th className="px-8 py-4 whitespace-nowrap">时间</th>
+                    {user.role === UserRole.ADMIN && <th className="px-6 py-4">变动人</th>}
                     <th className="px-6 py-4">事由</th>
                     <th className="px-6 py-4">变动</th>
                     <th className="px-8 py-4">余额</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {MOCK_LOGS.map((log) => (
+                  {visibleLogs.length > 0 ? visibleLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-8 py-6 text-xs font-bold text-slate-400 whitespace-nowrap">{log.timestamp}</td>
+                      <td className="px-8 py-6 text-xs font-bold text-slate-400 whitespace-nowrap">
+                        {new Date(log.created_at).toLocaleString('zh-CN', { hour12: false })}
+                      </td>
+                      {user.role === UserRole.ADMIN && (
+                        <td className="px-6 py-6 text-xs font-black text-slate-900">{getEmployeeName(log.uid)}</td>
+                      )}
                       <td className="px-6 py-6 min-w-[200px]">
                         <p className="text-sm font-black text-slate-900">{log.reason}</p>
-                        <p className="text-[10px] text-slate-400 font-bold mt-1">操作: {log.operator}</p>
+                        <p className="text-[10px] text-slate-400 font-bold mt-1">操作人: {log.operator}</p>
                       </td>
                       <td className="px-6 py-6">
-                        <div className={`flex items-center gap-1 font-black ${log.changeAmount > 0 ? 'text-green-600' : 'text-nb-red'}`}>
-                          {log.changeAmount > 0 ? '+' : ''}{log.changeAmount}
+                        <div className={`flex items-center gap-1 font-black ${log.change_amount > 0 ? 'text-green-600' : 'text-nb-red'}`}>
+                          {log.change_amount > 0 ? '+' : ''}{log.change_amount}
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-sm font-black text-slate-900">{log.balanceAfter.toLocaleString()}</td>
+                      <td className="px-8 py-6 text-sm font-black text-slate-900">{(log.balance_after || 0).toLocaleString()}</td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={user.role === UserRole.ADMIN ? 5 : 4} className="px-8 py-12 text-center text-slate-300 font-black text-sm uppercase tracking-widest">
+                        暂无积分变动记录
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
