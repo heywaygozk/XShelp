@@ -173,7 +173,7 @@ const App: React.FC = () => {
       const pointsDiff = u.points - (oldUser?.points || 0);
 
       await supabase.from('users').upsert({
-        uid: u.uid, employee_id: u.employeeId, real_name: u.real_name, dept: u.dept,
+        uid: u.uid, employee_id: u.employeeId, real_name: u.realName, dept: u.dept,
         line: u.line, role: u.role, points: Number(u.points || 0), avatar: u.avatar
       });
 
@@ -239,6 +239,64 @@ const App: React.FC = () => {
     setDemands(prev => [dem, ...prev]);
   };
 
+  const addResource = async (res: Resource) => {
+    if (supabase) {
+      await supabase.from('resources').insert([{
+        rid: res.rid,
+        title: res.title,
+        description: res.description,
+        type: res.type,
+        tags: res.tags,
+        owner: res.owner,
+        owner_avatar: res.ownerAvatar,
+        status: res.status,
+        created_at: res.createdAt,
+        comments: res.comments
+      }]);
+    }
+    setResources(prev => [res, ...prev]);
+  };
+
+  const updateDemand = async (did: string, updates: Partial<Demand>) => {
+    if (supabase) {
+      const dbUpdates: any = { ...updates };
+      if (updates.customerInfo) { dbUpdates.customer_info = updates.customerInfo; delete dbUpdates.customerInfo; }
+      if (updates.rewardType) { dbUpdates.reward_type = updates.rewardType; delete dbUpdates.rewardType; }
+      if (updates.rewardValue) { dbUpdates.reward_value = updates.rewardValue; delete dbUpdates.rewardValue; }
+      if (updates.isRecommended !== undefined) { dbUpdates.is_recommended = updates.isRecommended; delete dbUpdates.isRecommended; }
+      if (updates.creatorId) { dbUpdates.creator_id = updates.creatorId; delete dbUpdates.creatorId; }
+      if (updates.creatorName) { dbUpdates.creator_name = updates.creatorName; delete dbUpdates.creatorName; }
+      if (updates.creatorAvatar) { dbUpdates.creator_avatar = updates.creatorAvatar; delete dbUpdates.creatorAvatar; }
+      if (updates.helperId) { dbUpdates.helper_id = updates.helperId; delete dbUpdates.helperId; }
+      if (updates.helperName) { dbUpdates.helper_name = updates.helperName; delete dbUpdates.helperName; }
+      if (updates.createdAt) { dbUpdates.created_at = updates.createdAt; delete dbUpdates.createdAt; }
+      
+      await supabase.from('demands').update(dbUpdates).eq('did', did);
+    }
+    setDemands(prev => prev.map(d => d.did === did ? { ...d, ...updates } : d));
+  };
+
+  const deleteDemand = async (did: string) => {
+    if (supabase) await supabase.from('demands').delete().eq('did', did);
+    setDemands(prev => prev.filter(d => d.did !== did));
+  };
+
+  const updateResource = async (rid: string, updates: Partial<Resource>) => {
+    if (supabase) {
+      const dbUpdates: any = { ...updates };
+      if (updates.ownerAvatar) { dbUpdates.owner_avatar = updates.ownerAvatar; delete dbUpdates.ownerAvatar; }
+      if (updates.createdAt) { dbUpdates.created_at = updates.createdAt; delete dbUpdates.createdAt; }
+      
+      await supabase.from('resources').update(dbUpdates).eq('rid', rid);
+    }
+    setResources(prev => prev.map(r => r.rid === rid ? { ...r, ...updates } : r));
+  };
+
+  const deleteResource = async (rid: string) => {
+    if (supabase) await supabase.from('resources').delete().eq('rid', rid);
+    setResources(prev => prev.filter(r => r.rid !== rid));
+  };
+
   const addComment = async (type: 'DEMAND' | 'RESOURCE', id: string, comment: Comment) => {
     const table = type === 'DEMAND' ? 'demands' : 'resources';
     const idKey = type === 'DEMAND' ? 'did' : 'rid';
@@ -273,10 +331,10 @@ const App: React.FC = () => {
               <Route path="/" element={<DashboardView user={activeUser} demands={demands} resources={resources} />} />
               <Route path="/demands" element={<DemandView user={activeUser} demands={demands} />} />
               <Route path="/demands/upload" element={<DemandUploadView user={activeUser} onUpload={addDemand} />} />
-              <Route path="/demands/:id" element={<DemandDetailView user={activeUser} demands={demands} onUpdate={() => {}} onDelete={() => {}} onAddComment={(id, c) => addComment('DEMAND', id, c)} />} />
+              <Route path="/demands/:id" element={<DemandDetailView user={activeUser} demands={demands} onUpdate={updateDemand} onDelete={deleteDemand} onAddComment={(id, c) => addComment('DEMAND', id, c)} />} />
               <Route path="/resources" element={<ResourceView user={activeUser} resources={resources} />} />
-              <Route path="/resources/upload" element={<ResourceUploadView user={activeUser} onUpload={() => {}} />} />
-              <Route path="/resources/:id" element={<ResourceDetailView user={activeUser} resources={resources} onUpdate={() => {}} onDelete={() => {}} onAddComment={(id, c) => addComment('RESOURCE', id, c)} />} />
+              <Route path="/resources/upload" element={<ResourceUploadView user={activeUser} onUpload={addResource} />} />
+              <Route path="/resources/:id" element={<ResourceDetailView user={activeUser} resources={resources} onUpdate={updateResource} onDelete={deleteResource} onAddComment={(id, c) => addComment('RESOURCE', id, c)} />} />
               <Route path="/points" element={<PointsView user={activeUser} logs={pointsLogs} users={users} onUpdatePassword={handleUpdatePassword} />} />
               <Route path="/admin" element={<AdminView users={users} demands={demands} resources={resources} onUpsertUser={handleUpsertUser} onDeleteUser={() => {}} onUpdateDemands={setDemands} onUpdateResources={setResources} />} />
               <Route path="/analytics" element={<AnalyticsView user={activeUser} demands={demands} resources={resources} users={users} activities={activities} />} />

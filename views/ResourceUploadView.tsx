@@ -30,7 +30,7 @@ const ResourceUploadView: React.FC<ResourceUploadViewProps> = ({ user, onUpload 
     const newRes: Resource = {
       rid: `r${Date.now()}`,
       title: formData.title,
-      description: formData.content.substring(0, 100) + '...',
+      description: formData.content,
       type: formData.l1Tag,
       tags: [formData.l2Tag],
       owner: user.realName,
